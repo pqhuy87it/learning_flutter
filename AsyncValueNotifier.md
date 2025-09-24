@@ -297,22 +297,30 @@ class _ListenerRef {
 }
 ```
 
-Tuyệt vời! Đây là một đoạn code rất thú vị và được viết tốt. AsyncValueNotifier là một phiên bản nâng cao, mạnh mẽ hơn của lớp ValueNotifier có sẵn trong Flutter. Hãy cùng phân tích chi tiết.
-Tổng quan
-AsyncValueNotifier là một lớp quản lý trạng thái triển khai ValueListenable, giống như ValueNotifier. Tuy nhiên, nó được thiết kế để giải quyết một số vấn đề và cung cấp các tính năng nâng cao mà ValueNotifier không có, bao gồm:
+Tuyệt vời! Đây là một đoạn code rất thú vị và được viết tốt. `AsyncValueNotifier` là một phiên bản nâng cao, mạnh mẽ hơn của lớp `ValueNotifier` có sẵn trong Flutter. Hãy cùng phân tích chi tiết.
 
-Thông báo bất đồng bộ (Asynchronous Notification): Các listener không được gọi ngay lập tức mà được lên lịch để thực thi trong một microtask.
-Gộp các cập nhật (Update Batching): Nhiều lần thay đổi giá trị trong cùng một "luồng" (event loop turn) sẽ chỉ kích hoạt một lần thông báo duy nhất.
-Hủy thông báo (Notification Cancellation): Có thể cấu hình để hủy thông báo nếu giá trị thay đổi rồi lại quay về giá trị ban đầu trước khi thông báo được gửi đi.
-Listener yếu (Weak Listeners): Tùy chọn sử dụng tham chiếu yếu (weak references) để tự động dọn dẹp các listener đã bị thu gom rác (garbage collected), giúp ngăn chặn rò rỉ bộ nhớ.
-Listener duy nhất (Distinct Listeners): Đảm bảo mỗi listener chỉ được gọi một lần ngay cả khi nó được thêm vào nhiều lần.
-Hàm so sánh tùy chỉnh (Custom Equality Check): Cho phép cung cấp hàm so sánh riêng để quyết định khi nào một giá trị được coi là "mới".
+### Tổng quan
+
+`AsyncValueNotifier` là một lớp quản lý trạng thái triển khai `ValueListenable`, giống như `ValueNotifier`. Tuy nhiên, nó được thiết kế để giải quyết một số vấn đề và cung cấp các tính năng nâng cao mà `ValueNotifier` không có, bao gồm:
+
+1.  **Thông báo bất đồng bộ (Asynchronous Notification)**: Các listener không được gọi ngay lập tức mà được lên lịch để thực thi trong một `microtask`.
+2.  **Gộp các cập nhật (Update Batching)**: Nhiều lần thay đổi giá trị trong cùng một "luồng" (event loop turn) sẽ chỉ kích hoạt một lần thông báo duy nhất.
+3.  **Hủy thông báo (Notification Cancellation)**: Có thể cấu hình để hủy thông báo nếu giá trị thay đổi rồi lại quay về giá trị ban đầu trước khi thông báo được gửi đi.
+4.  **Listener yếu (Weak Listeners)**: Tùy chọn sử dụng tham chiếu yếu (weak references) để tự động dọn dẹp các listener đã bị thu gom rác (garbage collected), giúp ngăn chặn rò rỉ bộ nhớ.
+5.  **Listener duy nhất (Distinct Listeners)**: Đảm bảo mỗi listener chỉ được gọi một lần ngay cả khi nó được thêm vào nhiều lần.
+6.  **Hàm so sánh tùy chỉnh (Custom Equality Check)**: Cho phép cung cấp hàm so sánh riêng để quyết định khi nào một giá trị được coi là "mới".
 
 Đây là một công cụ mạnh mẽ dành cho các kịch bản quản lý trạng thái phức tạp hơn.
 
-Phân tích chi tiết các thành phần
-1. Cơ chế Bất đồng bộ và Gộp cập nhật
-Đây là trái tim của AsyncValueNotifier, nằm trong setter của value:
+---
+
+### Phân tích chi tiết các thành phần
+
+#### 1. Cơ chế Bất đồng bộ và Gộp cập nhật
+
+Đây là trái tim của `AsyncValueNotifier`, nằm trong `setter` của `value`:
+
+```dart
 set value(T newValue) {
   if (!_disposed && !_isEqual(newValue)) {
     if (!_pending) { // Chỉ thực hiện nếu chưa có microtask nào được lên lịch
@@ -325,60 +333,62 @@ set value(T newValue) {
     _value = newValue; // Cập nhật giá trị ngay lập tức
   }
 }
+```
 
+-   **`_pending` flag**: Khi bạn gán giá trị mới lần đầu, `_pending` sẽ được đặt thành `true` và một `microtask` được lên lịch. Nếu bạn tiếp tục gán các giá trị mới khác ngay sau đó (trong cùng một hàm chẳng hạn), điều kiện `!_pending` sẽ là `false`, do đó không có `microtask` mới nào được tạo.
+-   **`scheduleMicrotask`**: Đảm bảo rằng việc thông báo cho các listener sẽ chỉ xảy ra sau khi tất cả các đoạn code đồng bộ hiện tại đã chạy xong.
+-   **Cập nhật đồng bộ**: Điều quan trọng là `_value = newValue;` được thực thi *ngay lập tức*. Điều này có nghĩa là nếu bạn đọc `notifier.value` ngay sau khi gán, bạn sẽ nhận được giá trị mới, mặc dù các listener chưa được thông báo.
 
-_pending flag: Khi bạn gán giá trị mới lần đầu, _pending sẽ được đặt thành true và một microtask được lên lịch. Nếu bạn tiếp tục gán các giá trị mới khác ngay sau đó (trong cùng một hàm chẳng hạn), điều kiện !_pending sẽ là false, do đó không có microtask mới nào được tạo.
-scheduleMicrotask: Đảm bảo rằng việc thông báo cho các listener sẽ chỉ xảy ra sau khi tất cả các đoạn code đồng bộ hiện tại đã chạy xong.
-Cập nhật đồng bộ: Điều quan trọng là _value = newValue; được thực thi ngay lập tức. Điều này có nghĩa là nếu bạn đọc notifier.value ngay sau khi gán, bạn sẽ nhận được giá trị mới, mặc dù các listener chưa được thông báo.
+**Lợi ích**: Điều này giúp tránh việc rebuild UI không cần thiết. Ví dụ:
 
-Lợi ích: Điều này giúp tránh việc rebuild UI không cần thiết. Ví dụ:
+```dart
 notifier.value = 1; // Lên lịch thông báo với giá trị cuối cùng sẽ là 1
 notifier.value = 2; // Không lên lịch mới, chỉ cập nhật _value
 notifier.value = 3; // Không lên lịch mới, chỉ cập nhật _value
 // Kết thúc hàm. Microtask sẽ chạy và thông báo cho listener với giá trị là 3 (chỉ 1 lần).
+```
 
-2. Quản lý Listener Nâng cao
-AsyncValueNotifier xử lý việc thêm/xóa listener một cách rất an toàn, ngay cả khi điều đó xảy ra trong lúc đang thông báo.
+#### 2. Quản lý Listener Nâng cao
 
-_dispatching flag: Cờ này được bật lên true khi notifier bắt đầu vòng lặp để gọi các listener.
-_toAdd và _toRemove: Nếu addListener hoặc removeListener được gọi trong khi _dispatching là true (ví dụ, một listener tự hủy chính nó), thao tác sẽ không được thực hiện ngay lập tức trên danh sách listener. Thay vào đó, nó được đưa vào hàng đợi trong _toAdd hoặc _toRemove.
-Xử lý hàng đợi: Sau khi vòng lặp thông báo kết thúc, _dispatching được đặt lại thành false, và code sẽ xử lý các listener trong _toAdd và _toRemove để cập nhật lại danh sách listener chính.
+`AsyncValueNotifier` xử lý việc thêm/xóa listener một cách rất an toàn, ngay cả khi điều đó xảy ra *trong lúc* đang thông báo.
 
-Lợi ích: Cách tiếp cận này ngăn ngừa lỗi "concurrent modification" (sửa đổi tập hợp trong khi đang duyệt qua nó), một lỗi phổ biến trong các hệ thống callback.
-3. Tùy chọn Cấu hình (cancelable, distinct, weakListener)
+-   **`_dispatching` flag**: Cờ này được bật lên `true` khi notifier bắt đầu vòng lặp để gọi các listener.
+-   **`_toAdd` và `_toRemove`**: Nếu `addListener` hoặc `removeListener` được gọi trong khi `_dispatching` là `true` (ví dụ, một listener tự hủy chính nó), thao tác sẽ không được thực hiện ngay lập tức trên danh sách listener. Thay vào đó, nó được đưa vào hàng đợi trong `_toAdd` hoặc `_toRemove`.
+-   **Xử lý hàng đợi**: Sau khi vòng lặp thông báo kết thúc, `_dispatching` được đặt lại thành `false`, và code sẽ xử lý các listener trong `_toAdd` và `_toRemove` để cập nhật lại danh sách listener chính.
 
-cancelable: true: Bên trong microtask, trước khi thông báo, nó sẽ kiểm tra lại: !_isEqual(oldValue). Nếu giá trị hiện tại lại bằng với giá trị cũ (trước khi setter được gọi), thông báo sẽ bị hủy.
-// Giả sử giá trị ban đầu là 0 và cancelable = true
-notifier.value = 1;
-notifier.value = 0; // Quay về giá trị ban đầu
-// Microtask chạy, thấy giá trị hiện tại (0) bằng giá trị cũ (0) -> không thông báo.
+**Lợi ích**: Cách tiếp cận này ngăn ngừa lỗi "concurrent modification" (sửa đổi tập hợp trong khi đang duyệt qua nó), một lỗi phổ biến trong các hệ thống callback.
 
+#### 3. Tùy chọn Cấu hình (`cancelable`, `distinct`, `weakListener`)
 
-distinct: true: Khi thông báo, nó sử dụng một Set để theo dõi các listener đã được gọi, đảm bảo mỗi hàm listener chỉ được thực thi một lần.
+-   **`cancelable: true`**: Bên trong `microtask`, trước khi thông báo, nó sẽ kiểm tra lại: `!_isEqual(oldValue)`. Nếu giá trị hiện tại lại bằng với giá trị cũ (trước khi `setter` được gọi), thông báo sẽ bị hủy.
+    ```dart
+    // Giả sử giá trị ban đầu là 0 và cancelable = true
+    notifier.value = 1;
+    notifier.value = 0; // Quay về giá trị ban đầu
+    // Microtask chạy, thấy giá trị hiện tại (0) bằng giá trị cũ (0) -> không thông báo.
+    ```
 
-weakListener: true: Đây là một tính năng tối ưu hóa bộ nhớ rất mạnh mẽ.
+-   **`distinct: true`**: Khi thông báo, nó sử dụng một `Set` để theo dõi các listener đã được gọi, đảm bảo mỗi hàm listener chỉ được thực thi một lần.
 
-Thay vì lưu trực tiếp VoidCallback, nó lưu _ListenerRef, một lớp bao bọc chứa WeakReference<VoidCallback>.
-WeakReference: Là một tham chiếu đến một đối tượng nhưng không ngăn trình thu gom rác (Garbage Collector - GC) xóa đối tượng đó.
-Expando: Được sử dụng để tạo một "bản đồ" hiệu quả từ một đối tượng listener đến _ListenerRef tương ứng của nó, giúp việc tìm và xóa nhanh hơn.
-Lợi ích: Nếu một listener (ví dụ một hàm callback trong một State của StatefulWidget) không còn được tham chiếu ở bất kỳ đâu khác ngoài AsyncValueNotifier, GC có thể thu dọn nó. Lần thông báo tiếp theo, AsyncValueNotifier sẽ thấy tham chiếu này là null và tự động loại bỏ nó khỏi danh sách. Điều này giúp ngăn ngừa memory leak một cách tự động khi bạn quên gọi removeListener.
+-   **`weakListener: true`**: Đây là một tính năng tối ưu hóa bộ nhớ rất mạnh mẽ.
+    -   Thay vì lưu trực tiếp `VoidCallback`, nó lưu `_ListenerRef`, một lớp bao bọc chứa `WeakReference<VoidCallback>`.
+    -   **`WeakReference`**: Là một tham chiếu đến một đối tượng nhưng không ngăn trình thu gom rác (Garbage Collector - GC) xóa đối tượng đó.
+    -   **`Expando`**: Được sử dụng để tạo một "bản đồ" hiệu quả từ một đối tượng listener đến `_ListenerRef` tương ứng của nó, giúp việc tìm và xóa nhanh hơn.
+    -   **Lợi ích**: Nếu một listener (ví dụ một hàm callback trong một `State` của `StatefulWidget`) không còn được tham chiếu ở bất kỳ đâu khác ngoài `AsyncValueNotifier`, GC có thể thu dọn nó. Lần thông báo tiếp theo, `AsyncValueNotifier` sẽ thấy tham chiếu này là `null` và tự động loại bỏ nó khỏi danh sách. Điều này giúp ngăn ngừa memory leak một cách tự động khi bạn quên gọi `removeListener`.
 
+#### 4. An toàn và Xử lý Lỗi
 
+-   **`_disposed` flag**: Hầu hết mọi hoạt động đều kiểm tra `!_disposed` trước tiên, đảm bảo notifier không làm gì sau khi đã được `dispose()`.
+-   **`_runListener`**: Mỗi listener được gọi bên trong một khối `try-catch`. Nếu một listener ném ra một ngoại lệ, nó sẽ không làm sập toàn bộ quá trình thông báo. Các listener khác vẫn sẽ được gọi. Trong chế độ không phải debug, lỗi sẽ được báo cáo tới `FlutterError.reportError`.
 
-4. An toàn và Xử lý Lỗi
+### Kết luận
 
-_disposed flag: Hầu hết mọi hoạt động đều kiểm tra !_disposed trước tiên, đảm bảo notifier không làm gì sau khi đã được dispose().
-_runListener: Mỗi listener được gọi bên trong một khối try-catch. Nếu một listener ném ra một ngoại lệ, nó sẽ không làm sập toàn bộ quá trình thông báo. Các listener khác vẫn sẽ được gọi. Trong chế độ không phải debug, lỗi sẽ được báo cáo tới FlutterError.reportError.
+`AsyncValueNotifier` không phải là một sự thay thế đơn giản cho `ValueNotifier` mà là một công cụ chuyên dụng, hiệu suất cao và an toàn cho các kịch bản phức tạp.
 
-Kết luận
-AsyncValueNotifier không phải là một sự thay thế đơn giản cho ValueNotifier mà là một công cụ chuyên dụng, hiệu suất cao và an toàn cho các kịch bản phức tạp.
-
-Khi nào nên sử dụng?
-Khi bạn thực hiện nhiều thay đổi trạng thái liên tiếp và chỉ muốn UI cập nhật một lần duy nhất.
-Khi bạn làm việc với các đối tượng tồn tại lâu dài (long-lived objects) và lo lắng về rò rỉ bộ nhớ từ các listener không được hủy đăng ký.
-Khi bạn cần sự linh hoạt trong việc so sánh các giá trị trạng thái (ví dụ với các đối tượng phức tạp).
-Khi bạn cần một hệ thống thông báo trạng thái mạnh mẽ và có khả năng phục hồi sau lỗi.
-
-
+-   **Khi nào nên sử dụng?**
+    -   Khi bạn thực hiện nhiều thay đổi trạng thái liên tiếp và chỉ muốn UI cập nhật một lần duy nhất.
+    -   Khi bạn làm việc với các đối tượng tồn tại lâu dài (long-lived objects) và lo lắng về rò rỉ bộ nhớ từ các listener không được hủy đăng ký.
+    -   Khi bạn cần sự linh hoạt trong việc so sánh các giá trị trạng thái (ví dụ với các đối tượng phức tạp).
+    -   Khi bạn cần một hệ thống thông báo trạng thái mạnh mẽ và có khả năng phục hồi sau lỗi.
 
 Tóm lại, đây là một lớp được thiết kế kỹ lưỡng, giải quyết nhiều vấn đề thực tế trong quản lý trạng thái của Flutter với hiệu suất và sự an toàn được đặt lên hàng đầu.
