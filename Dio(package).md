@@ -1,150 +1,290 @@
-Chắc chắn rồi\! Dio là một trong những package mạng (networking) mạnh mẽ và phổ biến nhất dành cho Flutter và Dart. Nó là một HTTP client (trình khách HTTP) được xây dựng trên `http` client mặc định nhưng cung cấp nhiều tính năng nâng cao hơn, giúp việc giao tiếp với các API trở nên dễ dàng và linh hoạt hơn rất nhiều.
+Chào bạn, rất vui được giới thiệu về `dio`, một trong những package HTTP client mạnh mẽ và phổ biến nhất trong hệ sinh thái Flutter/Dart.
 
-Hãy coi Dio như một phiên bản nâng cấp toàn diện của package `http` cơ bản.
+Dưới đây là một bài giới thiệu chi tiết về `dio`, từ khái niệm cơ bản đến các tính năng nâng cao và ví dụ thực tế.
 
------
+### Dio là gì?
 
-### \#\# Tại sao nên dùng Dio? 🤔
+**Dio** là một thư viện HTTP client mạnh mẽ dành cho Dart, hỗ trợ các tính năng mà thư viện `http` mặc định không có sẵn, chẳng hạn như Interceptors, cấu hình toàn cục, xử lý FormData, theo dõi tiến trình tải lên/tải xuống, hủy yêu cầu, và nhiều hơn nữa.
 
-Trong khi package `http` cơ bản đủ dùng cho các yêu cầu đơn giản, Dio vượt trội hơn hẳn với các tính năng sau:
+Nó giúp việc giao tiếp với các API REST trở nên dễ dàng, linh hoạt và có khả năng mở rộng hơn rất nhiều, đặc biệt là trong các dự án lớn.
 
-  * **Interceptors (Bộ chặn):** Cho phép bạn chặn và xử lý các yêu cầu (request), phản hồi (response), và lỗi (error) trước khi chúng được xử lý bởi `then` hoặc `catchError`. Đây là tính năng cực kỳ hữu ích để thêm token xác thực, logging, hoặc xử lý lỗi tập trung.
-  * **Cấu hình toàn cục:** Dễ dàng thiết lập các cấu hình chung như URL cơ sở (`baseUrl`), header, và thời gian chờ (`timeout`) cho tất cả các yêu cầu.
-  * **FormData:** Hỗ trợ gửi dữ liệu dạng `FormData`, rất cần thiết khi cần tải lên (upload) file.
-  * **Xử lý lỗi mạnh mẽ:** Dio bao bọc các lỗi mạng trong đối tượng `DioError`, cung cấp thông tin chi tiết về loại lỗi (timeout, lỗi server, v.v.), giúp việc gỡ lỗi dễ dàng hơn.
-  * **Quản lý Cookie:** Tự động quản lý cookie.
-  * **Hủy yêu cầu (Cancel Request):** Cho phép hủy các yêu-cầu mạng đang chờ, giúp quản lý tài nguyên tốt hơn.
-  * **Theo dõi tiến trình tải lên/tải xuống:** Cung cấp callback để theo dõi tiến trình của các tác vụ tốn nhiều thời gian.
+### Tại sao nên chọn Dio thay vì package `http` mặc định?
 
------
+| Tính năng | Package `http` (mặc định) | Package `dio` |
+| :--- | :--- | :--- |
+| **Interceptors** | ❌ Không có sẵn | ✅ Có (Cho phép chặn và xử lý request, response, error) |
+| **Cấu hình toàn cục** | ❌ Khá hạn chế | ✅ Có (Base URL, timeouts, headers có thể cấu hình một lần) |
+| **Xử lý lỗi** | Cơ bản, qua `try-catch` | ✅ Mạnh mẽ, có các loại `DioException` cụ thể (timeout, bad response,...) |
+| **FormData** | ❌ Phải tự xây dựng phức tạp | ✅ Hỗ trợ sẵn để gửi dữ liệu form và upload file |
+| **Tải xuống file** | Có thể làm được nhưng phức tạp | ✅ Có phương thức `download()` riêng với theo dõi tiến trình |
+| **Tải lên file** | Phải tự xây dựng `MultipartRequest` | ✅ Đơn giản qua `FormData`, có theo dõi tiến trình |
+| **Hủy yêu cầu** | ❌ Không hỗ trợ | ✅ Có, thông qua `CancelToken` |
+| **Timeouts** | Có thể cấu hình | ✅ Cấu hình chi tiết (connect, receive, send timeout) |
+| **Tự động giải mã JSON** | ❌ Phải tự `json.decode()` | ✅ Tự động giải mã JSON trong response |
 
-### \#\# Cài đặt
+### 1. Cài đặt
 
-1.  Thêm package vào file `pubspec.yaml`:
+Thêm `dio` vào file `pubspec.yaml` của bạn:
 
-    ```yaml
-    dependencies:
-      dio: ^5.4.3+1 # Luôn kiểm tra phiên bản mới nhất trên pub.dev
-    ```
+```yaml
+dependencies:
+  flutter:
+    sdk: flutter
+  dio: ^5.4.3+1 # Luôn kiểm tra phiên bản mới nhất trên pub.dev
+```
 
-2.  Chạy lệnh `flutter pub get` trong terminal của bạn.
+Sau đó, chạy lệnh `flutter pub get` trong terminal.
 
------
+### 2. Cách sử dụng cơ bản
 
-### \#\# Cách sử dụng cơ bản
-
-#### **1. Tạo một instance của Dio**
-
-Bạn nên tạo một instance duy nhất và tái sử dụng nó trong toàn bộ ứng dụng của mình.
+Import package và tạo một instance của `Dio`.
 
 ```dart
 import 'package:dio/dio.dart';
 
-final dio = Dio(); // Tạo một instance
+final dio = Dio();
+
+void getHttp() async {
+  try {
+    final response = await dio.get('https://jsonplaceholder.typicode.com/posts/1');
+    print(response.data); // Dio tự động giải mã JSON
+    print(response.statusCode); // 200
+  } catch (e) {
+    print(e);
+  }
+}
 ```
 
-Bạn cũng có thể cấu hình các tùy chọn cơ bản ngay khi tạo:
+### 3. Các tính năng chính và ví dụ chi tiết
+
+#### a. Cấu hình toàn cục (BaseOptions)
+
+Thay vì lặp lại URL, headers, hay timeout cho mỗi request, bạn có thể cấu hình một lần.
 
 ```dart
-final options = BaseOptions(
-  baseUrl: 'https://api.example.com', // URL gốc của API
-  connectTimeout: Duration(seconds: 5),  // Thời gian chờ kết nối
-  receiveTimeout: Duration(seconds: 3),  // Thời gian chờ nhận dữ liệu
+import 'package:dio/dio.dart';
+
+// Tạo một instance Dio với cấu hình cơ bản
+final dio = Dio(
+  BaseOptions(
+    baseUrl: 'https://api.yourdomain.com/',
+    connectTimeout: Duration(seconds: 5), // 5 giây
+    receiveTimeout: Duration(seconds: 3), // 3 giây
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    },
+  ),
 );
 
-final dio = Dio(options);
-```
-
-#### **2. Thực hiện một yêu cầu GET**
-
-Đây là cách lấy danh sách các bài đăng từ một API giả lập.
-
-```dart
-void getPosts() async {
+// Bây giờ bạn chỉ cần gọi endpoint
+void fetchUserData() async {
   try {
-    // Thực hiện yêu cầu GET
-    final response = await dio.get('/posts');
-
-    // Kiểm tra nếu request thành công (status code 200)
-    if (response.statusCode == 200) {
-      // Dữ liệu trả về nằm trong response.data
-      print(response.data);
-    } else {
-      print('Yêu cầu thất bại với mã trạng thái: ${response.statusCode}');
-    }
+    // Sẽ gọi đến: https://api.yourdomain.com/users/1
+    final response = await dio.get('/users/1'); 
+    print(response.data);
   } catch (e) {
-    // Xử lý lỗi (ví dụ: không có kết nối mạng)
-    print('Đã xảy ra lỗi: $e');
+    print(e);
   }
 }
 ```
 
-#### **3. Thực hiện một yêu cầu POST (Gửi dữ liệu)**
+#### b. Interceptors (Bộ chặn)
 
-Đây là cách tạo một bài đăng mới.
+Đây là tính năng mạnh mẽ nhất của `dio`. Interceptors cho phép bạn "chặn" và can thiệp vào các quá trình của một HTTP request.
+
+*   `onRequest`: Chặn trước khi request được gửi đi (ví dụ: thêm token xác thực).
+*   `onResponse`: Chặn sau khi nhận được response thành công.
+*   `onError`: Chặn khi có lỗi xảy ra (ví dụ: refresh token khi token hết hạn).
+
+**Ví dụ: Thêm Access Token vào tất cả các request**
 
 ```dart
-void createPost() async {
+import 'package:dio/dio.dart';
+
+// Giả sử bạn lưu token ở đâu đó
+String? accessToken = "your_secret_token_here";
+
+final dio = Dio();
+
+void setupInterceptors() {
+  dio.interceptors.add(
+    InterceptorsWrapper(
+      onRequest: (options, handler) {
+        // Thêm access token vào header của mỗi request
+        if (accessToken != null) {
+          options.headers['Authorization'] = 'Bearer $accessToken';
+        }
+        print('REQUEST[${options.method}] => PATH: ${options.path}');
+        // Phải gọi handler.next(options) để request được tiếp tục
+        return handler.next(options); 
+      },
+      onResponse: (response, handler) {
+        print('RESPONSE[${response.statusCode}] => DATA: ${response.data}');
+        // Tiếp tục chuỗi response
+        return handler.next(response);
+      },
+      onError: (DioException e, handler) {
+        print('ERROR[${e.response?.statusCode}] => MESSAGE: ${e.message}');
+        // Xử lý lỗi, ví dụ refresh token nếu lỗi 401
+        if (e.response?.statusCode == 401) {
+          // Logic refresh token ở đây...
+        }
+        // Tiếp tục chuỗi lỗi
+        return handler.next(e);
+      },
+    ),
+  );
+}
+```
+
+#### c. Xử lý lỗi (Error Handling)
+
+`Dio` ném ra `DioException` khi có lỗi, chứa rất nhiều thông tin hữu ích.
+
+```dart
+void fetchDataWithErrorHandling() async {
+  try {
+    await dio.get('https://your-api.com/non-existent-endpoint');
+  } on DioException catch (e) {
+    // Lỗi liên quan đến response từ server (404, 500,...)
+    if (e.type == DioExceptionType.badResponse) {
+      print('Lỗi response: ${e.response?.statusCode}');
+      print('Nội dung lỗi: ${e.response?.data}');
+    } 
+    // Lỗi kết nối, timeout,...
+    else if (e.type == DioExceptionType.connectionTimeout) {
+      print('Lỗi: Hết thời gian kết nối.');
+    } 
+    // Yêu cầu bị hủy
+    else if (e.type == DioExceptionType.cancel) {
+      print('Yêu cầu đã bị hủy.');
+    }
+    // Các loại lỗi khác
+    else {
+      print('Lỗi không xác định: ${e.message}');
+    }
+  }
+}
+```
+
+#### d. Gửi dữ liệu (POST, PUT)
+
+Bạn có thể gửi một `Map` và `dio` sẽ tự động chuyển nó thành JSON.
+
+```dart
+void createUser() async {
   try {
     final response = await dio.post(
-      '/posts',
+      '/users',
       data: {
-        'title': 'foo',
-        'body': 'bar',
-        'userId': 1,
+        'name': 'John Doe',
+        'email': 'john.doe@example.com',
       },
     );
-
-    if (response.statusCode == 201) { // 201 Created
-      print('Tạo bài đăng thành công!');
-      print(response.data);
-    }
+    print('User created: ${response.data}');
   } catch (e) {
-    print('Đã xảy ra lỗi: $e');
+    print(e);
   }
 }
 ```
 
------
+#### e. Tải file lên (Uploading Files) với `FormData`
 
-### \#\# Ví dụ về Interceptors: Thêm Token xác thực tự động
-
-Đây là sức mạnh thực sự của Dio. Giả sử bạn cần thêm một `Authorization` header vào mọi yêu cầu.
+`FormData` được dùng để gửi dữ liệu dạng `multipart/form-data`, rất hữu ích khi upload file.
 
 ```dart
-// Thêm interceptor vào instance của Dio
-dio.interceptors.add(InterceptorsWrapper(
-  // Hàm này sẽ được gọi trước khi một yêu cầu được gửi đi
-  onRequest: (RequestOptions options, RequestInterceptorHandler handler) {
-    print('GỬI YÊU CẦU| ${options.method} => PATH: ${options.path}');
+import 'package:dio/dio.dart';
+import 'package:image_picker/image_picker.dart'; // Giả sử bạn dùng image_picker
+
+Future<void> uploadProfilePicture(XFile imageFile) async {
+  try {
+    String fileName = imageFile.path.split('/').last;
     
-    // Giả sử bạn đã lưu token sau khi đăng nhập
-    String? myAuthToken = 'your_super_secret_token';
+    FormData formData = FormData.fromMap({
+      "file": await MultipartFile.fromFile(imageFile.path, filename: fileName),
+      "user_id": 123, // Gửi kèm các dữ liệu khác
+    });
 
-    if (myAuthToken != null) {
-      options.headers['Authorization'] = 'Bearer $myAuthToken';
-    }
-
-    // Phải gọi handler.next(options) để tiếp tục gửi yêu cầu
-    return handler.next(options); 
-  },
-  // Được gọi khi có phản hồi thành công
-  onResponse: (Response response, ResponseInterceptorHandler handler) {
-    print('NHẬN PHẢN HỒI| ${response.statusCode} => PATH: ${response.requestOptions.path}');
-    return handler.next(response);
-  },
-  // Được gọi khi có lỗi xảy ra
-  onError: (DioException e, ErrorInterceptorHandler handler) {
-    print('LỖI| ${e.response?.statusCode} => PATH: ${e.requestOptions.path}');
-    return handler.next(e);
-  },
-));
-
-// Bây giờ, mọi yêu cầu bạn thực hiện với 'dio' sẽ tự động có header Authorization
-// Ví dụ:
-// await dio.get('/user/profile'); // Yêu cầu này sẽ tự động đính kèm token
+    final response = await dio.post(
+      '/upload-avatar',
+      data: formData,
+      onSendProgress: (int sent, int total) {
+        // Theo dõi tiến trình upload
+        double percentage = (sent / total * 100);
+        print('Đã tải lên: ${percentage.toStringAsFixed(2)}%');
+      },
+    );
+    print('Upload thành công: ${response.data}');
+  } catch (e) {
+    print('Upload thất bại: $e');
+  }
+}
 ```
 
-Với Interceptor, bạn không cần phải lặp lại việc thêm token ở mọi nơi gọi API, giúp mã nguồn sạch sẽ và dễ bảo trì hơn rất nhiều.
+#### f. Tải file xuống (Downloading Files)
 
-Tóm lại, **Dio** là một công cụ không thể thiếu cho các dự án Flutter từ vừa đến lớn, giúp bạn xử lý các tác vụ mạng một cách chuyên nghiệp và hiệu quả.
+`dio` cung cấp một phương thức `download` riêng biệt.
+
+```dart
+import 'package:dio/dio.dart';
+import 'package:path_provider/path_provider.dart'; // Cần package path_provider
+
+Future<void> downloadFile() async {
+  try {
+    // Lấy đường dẫn thư mục để lưu file
+    final dir = await getApplicationDocumentsDirectory();
+    final savePath = '${dir.path}/my_downloaded_file.zip';
+
+    await dio.download(
+      'https://link-to-your-file.com/file.zip',
+      savePath,
+      onReceiveProgress: (received, total) {
+        if (total != -1) {
+          double percentage = (received / total * 100);
+          print('Đã tải xuống: ${percentage.toStringAsFixed(2)}%');
+        }
+      },
+    );
+    print('Tải file thành công, đã lưu tại: $savePath');
+  } catch (e) {
+    print('Tải file thất bại: $e');
+  }
+}
+```
+
+#### g. Hủy yêu cầu (Cancelling Requests)
+
+Đôi khi bạn cần hủy một request đang chạy (ví dụ: khi người dùng rời khỏi màn hình).
+
+```dart
+final cancelToken = CancelToken();
+
+void fetchWithCancellation() async {
+  try {
+    // Bắt đầu một request
+    dio.get(
+      'https://jsonplaceholder.typicode.com/posts',
+      cancelToken: cancelToken,
+    );
+
+    // Sau 100ms, hủy request
+    Future.delayed(Duration(milliseconds: 100), () {
+      if (!cancelToken.isCancelled) {
+        cancelToken.cancel("Yêu cầu đã bị người dùng hủy.");
+      }
+    });
+
+  } on DioException catch (e) {
+    if (CancelToken.isCancel(e)) {
+      print('Request bị hủy: ${e.message}');
+    } else {
+      // Xử lý các lỗi khác
+    }
+  }
+}
+```
+
+### Kết luận
+
+**Dio** là một công cụ không thể thiếu cho các nhà phát triển Flutter khi làm việc với networking. Nó cung cấp một API mạnh mẽ, linh hoạt và dễ sử dụng, giúp giải quyết hầu hết các tác vụ mạng phức tạp một cách gọn gàng. Nếu dự án của bạn cần nhiều hơn là các request GET/POST đơn giản, việc sử dụng `dio` sẽ giúp bạn tiết kiệm rất nhiều thời gian và công sức.
