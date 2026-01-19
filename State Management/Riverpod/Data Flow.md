@@ -18,12 +18,12 @@ Dưới đây là các sơ đồ minh họa luồng dữ liệu từ đơn giả
 
 ```mermaid
 graph TD
-    A[State / Dữ liệu] -->|được giữ bởi| B(Provider / Notifier);
-    B -->|ref.watch| C{Consumer Widget / UI};
-    C -->|Hiển thị| D[Màn hình người dùng];
-    D -->|Tương tác người dùng (Bấm nút)| E[Hành động / Sự kiện];
-    E -->|ref.read(...).notifier.method()| B;
-    B -->|Cập nhật lại| A;
+    A["State / Dữ liệu"] -->|"được giữ bởi"| B("Provider / Notifier")
+    B -->|"ref.watch"| C{"Consumer Widget / UI"}
+    C -->|"Hiển thị"| D["Màn hình người dùng"]
+    D -->|"Tương tác người dùng (Bấm nút)"| E["Hành động / Sự kiện"]
+    E -->|"ref.read(...).notifier.method()"| B
+    B -->|"Cập nhật lại"| A
 
     style A fill:#f9f,stroke:#333,stroke-width:2px,color:black
     style B fill:#ccf,stroke:#333,stroke-width:2px,color:black
@@ -102,24 +102,24 @@ Ví dụ: Bấm nút đăng nhập, gọi API, chờ kết quả.
 
 ```mermaid
 graph TD
-    User[Người dùng bấm nút 'Đăng nhập'] -->|1. Gọi hàm| UIAction[UI: ref.read(...).login()];
-    UIAction -->|2. Kích hoạt| Notifier[Notifier (AsyncNotifier)];
+    User["Người dùng bấm nút 'Đăng nhập'"] -->|"1. Gọi hàm"| UIAction["UI: ref.read(...).login()"]
+    UIAction -->|"2. Kích hoạt"| Notifier["Notifier (AsyncNotifier)"]
     
-    Notifier --x|3. SET STATE: Loading| AsyncLoading[AsyncValue.loading ⏳];
-    AsyncLoading -.->|Báo hiệu UI| UIRebuild1[UI vẽ vòng quay loading];
+    Notifier --x|"3. SET STATE: Loading"| AsyncLoading["AsyncValue.loading ⏳"]
+    AsyncLoading -.->|"Báo hiệu UI"| UIRebuild1["UI vẽ vòng quay loading"]
 
-    Notifier -->|4. Gọi Repository| Repo[Repository / Data Layer];
-    Repo -->|5. Gọi Server API| API[Server API ☁️];
+    Notifier -->|"4. Gọi Repository"| Repo["Repository / Data Layer"]
+    Repo -->|"5. Gọi Server API"| API["Server API ☁️"]
     
-    API --x|6a. Trả về thành công (Data)| Repo;
-    Repo --x|7a. Trả về Data| Notifier;
-    Notifier --x|8a. SET STATE: Data| AsyncData[AsyncValue.data ✅];
-    AsyncData -.->|Báo hiệu UI| UIRebuild2a[UI chuyển sang màn hình chính];
+    API --x|"6a. Trả về thành công (Data)"| Repo
+    Repo --x|"7a. Trả về Data"| Notifier
+    Notifier --x|"8a. SET STATE: Data"| AsyncData["AsyncValue.data ✅"]
+    AsyncData -.->|"Báo hiệu UI"| UIRebuild2a["UI chuyển sang màn hình chính"]
 
-    API --x|6b. Trả về lỗi (Error)| Repo;
-    Repo --x|7b. Trả về Exception| Notifier;
-    Notifier --x|8b. SET STATE: Error| AsyncError[AsyncValue.error ❌];
-    AsyncError -.->|Báo hiệu UI| UIRebuild2b[UI hiện thông báo lỗi];
+    API --x|"6b. Trả về lỗi (Error)"| Repo
+    Repo --x|"7b. Trả về Exception"| Notifier
+    Notifier --x|"8b. SET STATE: Error"| AsyncError["AsyncValue.error ❌"]
+    AsyncError -.->|"Báo hiệu UI"| UIRebuild2b["UI hiện thông báo lỗi"]
 
     style AsyncLoading fill:#eee,stroke:gray,stroke-dasharray: 5 5
     style AsyncData fill:#dfd,stroke:green
